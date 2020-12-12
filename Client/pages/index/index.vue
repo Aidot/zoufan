@@ -1,18 +1,27 @@
 <template>
 	<view class="page">
-		<!-- 		<view class="cu-bar bg-white margin-top solid-bottom">
-			<view class="action">
-				<text class="cuIcon-title text-orange"></text> 平分
+		<view class="cu-bar search bg-white solid-bottom">
+			<view class="search-form round">
+				<text class="cuIcon-search"></text>
+				<input 
+					@blur="searchBlur"
+					@confirm="searchBlur"
+					:adjust-position="false" 
+					type="text"
+					v-model="keyword"
+					placeholder="关键词"
+					confirm-type="search"></input>
 			</view>
-		</view> -->
-		<scroll-view scroll-x class="bg-white nav">
+			<view class="action margin-left">
+				<text class="cuIcon-more"></text>
+			</view>
+		</view>
+		<!-- <text class="cuIcon-title text-orange"></text> -->
+		<scroll-view scroll-x scroll-with-animatio class="bg-white nav" :scroll-left="scrollLeft">
 			<view class="flex text-center">
 				<view class="cu-item flex-sub" :class="index==TabCur?'text-red cur':''" v-for="(item, index) in labels" :key="index"
 				 @tap="tabSelect" :data-id="index">
 					{{item}}
-				</view>
-				<view class="cu-item flex-sub" :key="5" :data-id="5">
-					<text class="cuIcon-moreandroid margin-lr-xs"></text>
 				</view>
 			</view>
 		</scroll-view>
@@ -69,7 +78,7 @@
 						<text class="cuIcon-like margin-right-xs" :class="c.favor ? 'text-red': ''"></text>
 						<text class="text-sm">收藏</text>
 					</view>
-					<view class="padding-sm">
+					<view class="padding-sm" @click="addNote(c.id)">
 						<text class="cuIcon-remind margin-lr-xs"></text>
 						<text class="text-sm">提醒</text>
 					</view>
@@ -78,6 +87,7 @@
 						<text class="text-sm">告警</text>
 					</view>
 				</view>
+				<Note v-if="note.id === c.id" :note="note" @hideNote="hideNote" />
 			</view>
 		</view>
 		<uni-load-more></uni-load-more>
@@ -92,6 +102,7 @@
 	} from '../../common/api.js'
 	import moment from 'moment'
 	import 'moment/locale/zh-cn'
+	import Note from './note.vue'
 	const labels = ['最新', '陪伴', '认知', '安慰', '鼓励']
 
 
@@ -99,6 +110,7 @@
 		components: {
 			// uniRefresh,
 			// uniLoadMore,
+			Note,
 		},
 		data() {
 			return {
@@ -106,10 +118,17 @@
 				title: 'Hello',
 				page: 1,
 				label: 0,
+				keyword: '',
 				comments: [],
 				TabCur: 0,
 				openid: '123',
+				fan: 1,
 				mid: 1,
+				scrollLeft: 0,
+				note: {
+					openid: null,
+					id: null,
+				},
 			}
 		},
 		onLoad() {
@@ -148,10 +167,16 @@
 			visitWeibo(uid) {
 				window.open('https://m.weibo.cn/u/' + uid)
 			},
+			searchBlur() {
+				this.comments = []
+				this.getComments()
+			},
 			tabSelect(e) {
 				this.TabCur = e.currentTarget.dataset.id;
 				this.label = parseInt(this.TabCur)
+				this.scrollLeft = (e.currentTarget.dataset.id - 1) * 100
 				console.log(this.label)
+				this.keyword = ''
 				this.comments = []
 				this.page = 1
 				if (this.TabCur < 5) {
@@ -163,8 +188,9 @@
 				uni.request({
 					url: API_AUTH,
 					success(res) {
-						this.openid = res.openid
-						this.mid = res.mid
+						this.openid = res.data.openid
+						this.mid = res.data.mid
+						this.fan = res.data.fan
 					}
 				})
 			},
@@ -173,7 +199,8 @@
 				let {
 					openid,
 					page,
-					label
+					label,
+					keyword,
 				} = this
 				uni.request({
 					url: API_COMMENTS,
@@ -181,7 +208,8 @@
 						openid,
 						page: page,
 						size: 20,
-						label: label
+						label: label,
+						keyword,
 					},
 					success(res) {
 						if (res.statusCode === 200) {
@@ -198,6 +226,19 @@
 					}
 				})
 			},
+			addNote(cid) {
+				// if (!this.fan) return
+				let { id } = this.note
+				this.note = {
+					openid: this.openid,
+					id: !id ? cid : null,
+				}				
+			},
+			hideNote() {
+				this.note = {
+					id: null
+				}
+			},
 			addFavor(id) {
 				if (!this.openid) return
 				uni.request({
@@ -212,7 +253,7 @@
 						console.log(res)
 						uni.showToast({
 							title: res.data.message,
-							icon:'none',
+							icon: 'none',
 							duration: 2000
 						});
 					}
@@ -241,15 +282,44 @@
 		overflow: hidden;
 	}
 
-	.qiun-charts {
-		width: 750upx;
-		height: 500upx;
-		background-color: #FFFFFF;
+	.VerticalNav.nav {
+		width: 200upx;
+		white-space: initial;
 	}
 
-	.charts {
-		width: 750upx;
-		height: 500upx;
-		background-color: #FFFFFF;
+	.VerticalNav.nav .cu-item {
+		width: 100%;
+		text-align: center;
+		background-color: #fff;
+		margin: 0;
+		border: none;
+		height: 50px;
+		position: relative;
+	}
+
+	.VerticalNav.nav .cu-item.cur {
+		background-color: #f1f1f1;
+	}
+
+	.VerticalNav.nav .cu-item.cur::after {
+		content: "";
+		width: 8upx;
+		height: 30upx;
+		border-radius: 10upx 0 0 10upx;
+		position: absolute;
+		background-color: currentColor;
+		top: 0;
+		right: 0upx;
+		bottom: 0;
+		margin: auto;
+	}
+
+	.VerticalBox {
+		display: flex;
+	}
+
+	.VerticalMain {
+		background-color: #f1f1f1;
+		flex: 1;
 	}
 </style>
