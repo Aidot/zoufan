@@ -65,8 +65,8 @@
 						<text class="cuIcon-weibo margin-right-xs"></text>
 						<text class="text-sm">访问</text>
 					</view>
-					<view class="padding-sm">
-						<text class="cuIcon-like margin-right-xs"></text>
+					<view class="padding-sm" @click="addFavor(c.id)">
+						<text class="cuIcon-like margin-right-xs" :class="c.favor ? 'text-red': ''"></text>
 						<text class="text-sm">收藏</text>
 					</view>
 					<view class="padding-sm">
@@ -85,7 +85,11 @@
 </template>
 
 <script>
-	import API_HOST from '../../common/api.js'	
+	import {
+		API_COMMENTS,
+		API_AUTH,
+		API_FAVOR_ADD,
+	} from '../../common/api.js'
 	import moment from 'moment'
 	import 'moment/locale/zh-cn'
 	const labels = ['最新', '陪伴', '认知', '安慰', '鼓励']
@@ -104,9 +108,12 @@
 				label: 0,
 				comments: [],
 				TabCur: 0,
+				openid: '123',
+				mid: 1,
 			}
 		},
 		onLoad() {
+			this.getAuth()
 			this.getComments()
 		},
 		filters: {
@@ -149,18 +156,29 @@
 				this.page = 1
 				if (this.TabCur < 5) {
 					this.getComments()
-				} 
-				
+				}
+
+			},
+			getAuth() {
+				uni.request({
+					url: API_AUTH,
+					success(res) {
+						this.openid = res.openid
+						this.mid = res.mid
+					}
+				})
 			},
 			getComments() {
 				let that = this
 				let {
+					openid,
 					page,
 					label
 				} = this
 				uni.request({
-					url: API_HOST + '/a/api/items/read.php',
+					url: API_COMMENTS,
 					data: {
+						openid,
 						page: page,
 						size: 20,
 						label: label
@@ -180,7 +198,26 @@
 					}
 				})
 			},
-
+			addFavor(id) {
+				if (!this.openid) return
+				uni.request({
+					method: 'POST',
+					url: API_FAVOR_ADD,
+					data: {
+						openid: this.openid,
+						mid: this.mid,
+						comment_id: id
+					},
+					success(res) {
+						console.log(res)
+						uni.showToast({
+							title: res.data.message,
+							icon:'none',
+							duration: 2000
+						});
+					}
+				})
+			},
 			onPullDownRefresh() {
 				console.log('下拉刷新', this.page);
 				this.page = 1
