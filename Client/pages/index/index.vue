@@ -85,9 +85,9 @@
 </template>
 
 <script>
+	import API_HOST from '../../common/api.js'	
 	import moment from 'moment'
 	import 'moment/locale/zh-cn'
-	import API_HOST from '../../common/api.js'	
 	const labels = ['最新', '陪伴', '认知', '安慰', '鼓励']
 
 

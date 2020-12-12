@@ -14,6 +14,7 @@
 </template>
 
 <script>
+	import API_HOST from '../../common/api.js'	
 	import moment from 'moment'
 	import 'moment/locale/zh-cn'
 	import uCharts from '@/components/u-charts/u-charts.js';
@@ -43,10 +44,9 @@
 		methods: {
 			getServerData() {
 				uni.request({
-					url: 'https://x2io.cn/a/api/items/report.php?type=day',
+					url: API_HOST + '/a/api/items/report.php?type=day',
 					data: {},
 					success: function(res) {
-						console.log(1111, res.data)
 						let LineA = {
 							categories: [],
 							series: []
