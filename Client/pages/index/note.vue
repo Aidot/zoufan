@@ -4,7 +4,7 @@
 			<form @submit="submitNote">
 				<view class="cu-form-group">
 					<view class="title">日期</view>
-					<picker mode="date" :value="date" start="2020-12-01" end="2030-01-01" @change="DateChange">
+					<picker mode="date" :value="date" :start="date" end="2030-01-01" @change="DateChange">
 						<view class="picker">
 							{{date}}
 						</view>
@@ -12,7 +12,7 @@
 				</view>
 				<view class="cu-form-group">
 					<view class="title">时间</view>
-					<picker mode="time" :value="time" start="08:01" end="20:01" @change="TimeChange">
+					<picker mode="time" :value="time" :start="time" end="24:00" @change="TimeChange">
 						<view class="picker">
 							{{time}}
 						</view>
@@ -44,6 +44,8 @@
 		props:["note"],
 		data() {
 			return {
+				date_start: moment().format('YYYY-MM-DD'),
+				time_start: moment().format('HH:mm'),
 				time: moment().format('HH:mm'),
 				date: moment().format('YYYY-MM-DD'),
 				content: '',
@@ -56,7 +58,6 @@
 			submitNote(e) {
 				let value = e.detail.value
 				let time = moment(this.date+' '+ this.time).unix()
-				console.log(1122, time, this.note)
 				uni.request({
 					url: API_NOTE_ADD,
 					method: 'POST',

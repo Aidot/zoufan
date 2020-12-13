@@ -13,9 +13,11 @@
 					confirm-type="search"></input>
 			</view>
 			<view class="action margin-left">
-				<text class="cuIcon-more"></text>
+				<text @click="navFavor()" :class="showFavor?'cuIcon-likefill text-orange':'cuIcon-likefill'">
+				</text>
 			</view>
 		</view>
+	
 		<!-- <text class="cuIcon-title text-orange"></text> -->
 		<scroll-view scroll-x scroll-with-animatio class="bg-white nav" :scroll-left="scrollLeft">
 			<view class="flex text-center">
@@ -26,12 +28,12 @@
 			</view>
 		</scroll-view>
 		<view class="cu-card dynamic">
-			<view class="cu-item shadow" v-for="c in comments" :key="c.id">
+			<view class="cu-item shadow" v-for="(c, i) in comments" :key="c.id">
 				<view class="cu-list menu-avatar">
-					<view class="cu-item">
+					<view class="cu-item padding-l-140">
 						<view @click="visitWeibo(c.user.id)" class="cu-avatar round lg" :style="'background-image:url('+c.user.avatar+');'">
 						</view>
-						<view class="content flex-sub">
+						<view class="flex-sub">
 							<view>
 								<text v-if="c.user.gender" class="margin-right-sm" :class="c.user.gender == 'f' ? 'text-pink cuIcon-female' : 'text-blue cuIcon-male'">
 								</text>
@@ -42,7 +44,7 @@
 							</view>
 						</view>
 						<view>
-							<view class="flex p-xs text-center">
+							<view class="flex p-xs text-center" @click="sendWxMsg('group', c)">
 								<view class="flex-sub padding-sm text-xl">
 									<text class="cuIcon-wefill text-green" title="告警"></text>
 									<view class="text-xs text-gray">扩散</view>
@@ -74,7 +76,7 @@
 						<text class="cuIcon-weibo margin-right-xs"></text>
 						<text class="text-sm">访问</text>
 					</view>
-					<view class="padding-sm" @click="addFavor(c.id)">
+					<view class="padding-sm" @click="addFavor(c.id, i)">
 						<text class="cuIcon-like margin-right-xs" :class="c.favor ? 'text-red': ''"></text>
 						<text class="text-sm">收藏</text>
 					</view>
@@ -82,7 +84,7 @@
 						<text class="cuIcon-remind margin-lr-xs"></text>
 						<text class="text-sm">提醒</text>
 					</view>
-					<view class="padding-sm text-red">
+					<view @click="sendWxMsg('sos', c)" class="padding-sm text-red">
 						<text class="cuIcon-notice"></text>
 						<text class="text-sm">告警</text>
 					</view>
@@ -90,7 +92,7 @@
 				<Note v-if="note.id === c.id" :note="note" @hideNote="hideNote" />
 			</view>
 		</view>
-		<uni-load-more></uni-load-more>
+		<uni-load-more :contentText="loadmoreText"></uni-load-more>
 	</view>
 </template>
 
@@ -99,6 +101,7 @@
 		API_COMMENTS,
 		API_AUTH,
 		API_FAVOR_ADD,
+		API_WX_MSG
 	} from '../../common/api.js'
 	import moment from 'moment'
 	import 'moment/locale/zh-cn'
@@ -125,10 +128,16 @@
 				fan: 1,
 				mid: 1,
 				scrollLeft: 0,
+				showFavor: false,
 				note: {
 					openid: null,
 					id: null,
 				},
+				loadmoreText: {
+					contentdown: "",
+					contentrefresh: "正在加载...",
+					contentnomore: "没有更多数据了"
+				}
 			}
 		},
 		onLoad() {
@@ -140,7 +149,7 @@
 				return (score * 100).toFixed(0) + '%'
 			},
 			formateDateTime(s) {
-				return moment(s).startOf('hour').fromNow()
+				return moment(s).startOf('second').fromNow()
 			},
 			formateDateT(s) {
 				return moment(s).format('YYYY-MM-DD HH:mm:ss')
@@ -167,11 +176,46 @@
 			visitWeibo(uid) {
 				window.open('https://m.weibo.cn/u/' + uid)
 			},
+			navFavor() {
+				this.showFavor = !this.showFavor
+				this.page = 0
+				this.comments = []
+				this.getComments()
+			},
 			searchBlur() {
 				this.comments = []
 				this.getComments()
 			},
+			sendWxMsg(action, c) {
+				console.log('group msg', c)
+				let params = {
+					action,
+					id: c.id,
+					openid: this.openid
+				}
+				uni.showModal({
+				    title: '提醒',
+				    content: '点击确定，消息将转发到微信群。',
+				    success: function (res) {
+				        if (res.confirm) {
+				           uni.request({
+				           	url: API_WX_MSG,
+				           	method: "POST",
+				           	data: params,
+				           	success(res) {
+				           		uni.showToast({
+				           			title: res.data.message,
+				           			icon: 'none',
+				           			duration: 2000
+				           		});
+				           	}
+				           }) 
+				        }
+				    }
+				});
+			},
 			tabSelect(e) {
+				this.showFavor = false
 				this.TabCur = e.currentTarget.dataset.id;
 				this.label = parseInt(this.TabCur)
 				this.scrollLeft = (e.currentTarget.dataset.id - 1) * 100
@@ -195,6 +239,9 @@
 				})
 			},
 			getComments() {
+				uni.showLoading({  
+				    title: '加载中'  
+				});
 				let that = this
 				let {
 					openid,
@@ -210,6 +257,7 @@
 						size: 20,
 						label: label,
 						keyword,
+						action: this.showFavor ? 'favtors' : null
 					},
 					success(res) {
 						if (res.statusCode === 200) {
@@ -222,7 +270,7 @@
 								that.page = page + 1
 							}
 						}
-
+						uni.hideLoading();  
 					}
 				})
 			},
@@ -239,8 +287,9 @@
 					id: null
 				}
 			},
-			addFavor(id) {
+			addFavor(id, i) {
 				if (!this.openid) return
+				let that = this
 				uni.request({
 					method: 'POST',
 					url: API_FAVOR_ADD,
@@ -256,6 +305,7 @@
 							icon: 'none',
 							duration: 2000
 						});
+						that.comments[i].favor = 1
 					}
 				})
 			},
@@ -277,7 +327,9 @@
 		height: 100Vh;
 		width: 100vw;
 	}
-
+	.padding-l-140 {
+		padding-left: 140upx;
+	}
 	.page.show {
 		overflow: hidden;
 	}
