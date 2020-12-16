@@ -13,7 +13,7 @@
 					confirm-type="search"></input>
 			</view>
 			<view class="action margin-left">
-				<text @click="navFavor()" :class="showFavor?'cuIcon-likefill text-orange':'cuIcon-likefill'">
+				<text @click="navFavor()" :class="showFavor?'cuIcon-attentionfavor text-orange':'cuIcon-attentionfavor'">
 				</text>
 			</view>
 		</view>
@@ -45,17 +45,17 @@
 						</view>
 						<view>
 							<view class="flex p-xs text-center" @click="sendWxMsg('group', c)">
-								<view class="flex-sub padding-sm text-xl">
-									<text class="cuIcon-wefill text-green" title="告警"></text>
+								<view class="padding-sm text-xl">
+									<text class="cuIcon-wefill text-green" title="扩散"></text>
 									<view class="text-xs text-gray">扩散</view>
 								</view>
 							</view>
 						</view>
 					</view>
 				</view>
-				<view class="grid flex-sub padding-lr margin-top-sm">
-					<text class="cu-tag sm radius" :class="c.label | labelBgcolor">{{c.label}}</text>
-					<text class="cu-tag sm bg-cyan radius">{{c.label_score | formatScore}}</text>
+				<view class="cu-capsule padding-lr radius margin-top-sm">
+					<text class="cu-tag sm" :class="c.label | labelBgcolor">{{c.label}}</text>
+					<text class="cu-tag sm bg-gray">{{c.label_score | formatScore}}</text>
 				</view>
 				<view class="text-content margin-top-sm">
 					{{c.text}}
@@ -63,30 +63,30 @@
 				<view v-if="c.comments && c.comments.length > 1" class="padding-lr radius">
 					<view v-for="(cc, i) in c.comments" :key="i" class="margin-top-sm">
 						<view v-if="cc.id != c.id">
-							<view class="text-grey text-xs margin-bottom-sm">
+							<view class="text-grey text-xs margin-bottom-xs">
 								<text class="cuIcon-time"></text> {{cc.created_at | formateDateTime}}
 							</view>
 							<view class="text-gray">{{cc.text}} </view>
 						</view>
 					</view>
 				</view>
-				<view class="text-gray flex justify-center margin-bottom-sm">
+				<view class="text-grey text-sm flex justify-center margin-bottom-sm">
 					<!-- <text class="cuIcon-appreciate margin-lr-xs"></text> -->
-					<view class="padding-sm" @click="visitWeibo(c.user.id)">
+					<view class="padding-sm" @click="visitWeibo(c.user.id, c.id)">
 						<text class="cuIcon-weibo margin-right-xs"></text>
-						<text class="text-sm">访问</text>
+						<text>主页</text>
 					</view>
 					<view class="padding-sm" @click="addFavor(c.id, i)">
-						<text class="cuIcon-like margin-right-xs" :class="c.favor ? 'text-red': ''"></text>
-						<text class="text-sm">收藏</text>
+						<text class="cuIcon-attentionfavor margin-right-xs" :class="c.favor ? 'text-red': ''"></text>
+						<text>收藏</text>
 					</view>
 					<view class="padding-sm" @click="addNote(c.id)">
 						<text class="cuIcon-remind margin-lr-xs"></text>
-						<text class="text-sm">提醒</text>
+						<text>提醒</text>
 					</view>
-					<view @click="sendWxMsg('sos', c)" class="padding-sm text-red">
-						<text class="cuIcon-notice"></text>
-						<text class="text-sm">告警</text>
+					<view @click="sendWxMsg('sos', c)" class="padding-sm">
+						<text class="cuIcon-noticefill text-red"></text>
+						<text>告警</text>
 					</view>
 				</view>
 				<Note v-if="note.id === c.id" :note="note" @hideNote="hideNote" />
@@ -100,7 +100,7 @@
 	import {
 		API_COMMENTS,
 		API_AUTH,
-		API_FAVOR_ADD,
+		API_FAVOR,
 		API_WX_MSG
 	} from '../../common/api.js'
 	import moment from 'moment'
@@ -122,6 +122,9 @@
 				page: 1,
 				label: 0,
 				keyword: '',
+				since_id: 0,
+				before_id: 0,
+				getAction: 'before',
 				comments: [],
 				TabCur: 0,
 				openid: '123',
@@ -133,16 +136,56 @@
 					openid: null,
 					id: null,
 				},
+				isLoading: false,
 				loadmoreText: {
 					contentdown: "",
 					contentrefresh: "正在加载...",
 					contentnomore: "没有更多数据了"
-				}
+				},
+				scrollTop: 0,
 			}
 		},
 		onLoad() {
+			uni.getStorage({
+				key: 'comments',
+				success: (res) => {
+					this.comments = res.data
+					this.before_id = res.data.slice(-1)[0].id
+				},
+				fail: () => {
+					this.getComments()
+				}
+			})
 			this.getAuth()
-			this.getComments()
+			
+		},
+		onPageScroll(e) {
+			this.scrollTop = e.scrollTop;
+		},
+		onShow() {
+			let that = this
+			uni.getStorage({
+				key: 'comments',
+				success: (res) => {
+					that.comments = res.data
+				},
+				fail: () => {
+					this.getComments()
+				}
+			})
+			uni.getStorage({
+				key:"newsTop",
+				success:(res)=> {
+					console.log(res.data);
+					var timer = setTimeout(()=>{
+						uni.pageScrollTo({
+						    scrollTop: res.data,
+						    duration: 0
+						});
+						clearTimeout(timer);
+					}, 50)
+				}
+			})
 		},
 		filters: {
 			formatScore(score) {
@@ -173,8 +216,35 @@
 			}
 		},
 		methods: {
-			visitWeibo(uid) {
+			visitWeibo(uid, id) {
+				uni.setStorage({
+					key: 'comments',
+					data: this.comments,
+				})
+				uni.setStorage({
+					key: "newsTop",
+					data: this.scrollTop,
+					success() {
+						console.log('成功了')
+					},
+						fail() {
+						console.log('缓存失败了')
+					}
+				})
 				window.open('https://m.weibo.cn/u/' + uid)
+			},
+			chatWeibo(uid) {
+				uni.setStorage({
+					key: "newsTop",
+					data:this.scrollTop,
+					success() {
+						console.log('成功了')
+					},
+						fail() {
+						console.log('缓存失败了')
+					}
+				})
+				// window.open('https://weibo.cn/qr/userinfo?uid='+uid)
 			},
 			navFavor() {
 				this.showFavor = !this.showFavor
@@ -188,6 +258,7 @@
 			},
 			sendWxMsg(action, c) {
 				console.log('group msg', c)
+				let groupname = action == 'sos' ? '专家' : '志愿者'
 				let params = {
 					action,
 					id: c.id,
@@ -195,7 +266,7 @@
 				}
 				uni.showModal({
 				    title: '提醒',
-				    content: '点击确定，消息将转发到微信群。',
+				    content: '点击确定，消息将转发到'+groupname+'群。',
 				    success: function (res) {
 				        if (res.confirm) {
 				           uni.request({
@@ -239,6 +310,9 @@
 				})
 			},
 			getComments() {
+				if (this.isLoading) {
+					return
+				}
 				uni.showLoading({  
 				    title: '加载中'  
 				});
@@ -248,7 +322,11 @@
 					page,
 					label,
 					keyword,
+					since_id,
+					before_id,
 				} = this
+				
+				that.isLoading = true
 				uni.request({
 					url: API_COMMENTS,
 					data: {
@@ -257,6 +335,7 @@
 						size: 20,
 						label: label,
 						keyword,
+						before_id,
 						action: this.showFavor ? 'favtors' : null
 					},
 					success(res) {
@@ -266,11 +345,16 @@
 								list
 							} = res.data
 							that.comments = that.comments.concat(list)
-							if (list.length == 20) {
+							if (list.length > 0 ) {
 								that.page = page + 1
 							}
+							that.since_id = that.comments[0].id
+							that.before_id = that.comments.slice(-1)[0].id
+							that.isLoading = false
 						}
-						uni.hideLoading();  
+						console.log(that)
+						uni.hideLoading();
+						uni.stopPullDownRefresh()
 					}
 				})
 			},
@@ -289,14 +373,16 @@
 			},
 			addFavor(id, i) {
 				if (!this.openid) return
+				let isFavor = this.comments[i].favor
 				let that = this
 				uni.request({
 					method: 'POST',
-					url: API_FAVOR_ADD,
+					url: API_FAVOR,
 					data: {
 						openid: this.openid,
 						mid: this.mid,
-						comment_id: id
+						comment_id: id,
+						action: isFavor ? 'cancel' : 'add'
 					},
 					success(res) {
 						console.log(res)
@@ -305,17 +391,23 @@
 							icon: 'none',
 							duration: 2000
 						});
-						that.comments[i].favor = 1
+						that.comments[i].favor = !isFavor
 					}
 				})
 			},
 			onPullDownRefresh() {
 				console.log('下拉刷新', this.page);
 				this.page = 1
+				uni.removeStorage({
+					key: 'comments'
+				})
 				this.getComments()
 			},
 			onReachBottom(e) {
 				console.log('触底加载更多', this.page)
+				uni.removeStorage({
+					key: 'comments'
+				})
 				this.getComments()
 			},
 		}
@@ -323,6 +415,9 @@
 </script>
 
 <style>
+	.uni-page-wrapper {
+		height: auto!important;
+	}
 	.page {
 		height: 100Vh;
 		width: 100vw;
