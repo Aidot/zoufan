@@ -3,8 +3,8 @@
 		<view class="cu-bar search bg-white solid-bottom">
 			<view class="search-form round">
 				<text class="cuIcon-search"></text>
+						<!-- @blur="searchBlur" -->
 				<input 
-					@blur="searchBlur"
 					@confirm="searchBlur"
 					:adjust-position="false" 
 					type="text"
@@ -37,7 +37,7 @@
 							<view>
 								<text v-if="c.user.gender" class="margin-right-sm" :class="c.user.gender == 'f' ? 'text-pink cuIcon-female' : 'text-blue cuIcon-male'">
 								</text>
-								<text>{{c.user.name || c.user.id}}</text>
+								<text selectable="true">{{c.user.name || c.user.id}}</text>
 							</view>
 							<view class="text-gray text-sm flex justify-between">
 								{{c.created_at | formateDateTime}}
@@ -58,7 +58,7 @@
 					<text class="cu-tag sm bg-gray">{{c.label_score | formatScore}}</text>
 				</view>
 				<view class="text-content margin-top-sm">
-					{{c.text}}
+					<text selectable="true">{{c.text}}</text>
 				</view>
 				<view v-if="c.comments && c.comments.length > 1" class="padding-lr radius">
 					<view v-for="(cc, i) in c.comments" :key="i" class="margin-top-sm">
@@ -146,16 +146,7 @@
 			}
 		},
 		onLoad() {
-			uni.getStorage({
-				key: 'comments',
-				success: (res) => {
-					this.comments = res.data
-					this.before_id = res.data.slice(-1)[0].id
-				},
-				fail: () => {
-					this.getComments()
-				}
-			})
+			this.getStorageComments()
 			this.getAuth()
 			
 		},
@@ -164,15 +155,7 @@
 		},
 		onShow() {
 			let that = this
-			uni.getStorage({
-				key: 'comments',
-				success: (res) => {
-					that.comments = res.data
-				},
-				fail: () => {
-					this.getComments()
-				}
-			})
+			this.getStorageComments()
 			uni.getStorage({
 				key:"newsTop",
 				success:(res)=> {
@@ -216,6 +199,19 @@
 			}
 		},
 		methods: {
+			getStorageComments() {
+				let that = this
+				uni.getStorage({
+					key: 'comments',
+					success: (res) => {
+						that.comments = res.data
+						that.before_id = that.comments.slice(-1)[0].id
+					},
+					fail: () => {
+						that.getComments()
+					}
+				})
+			},
 			visitWeibo(uid, id) {
 				uni.setStorage({
 					key: 'comments',
@@ -253,7 +249,7 @@
 				this.getComments()
 			},
 			searchBlur() {
-				this.comments = []
+				this.before_id = 0
 				this.getComments()
 			},
 			sendWxMsg(action, c) {
@@ -289,8 +285,8 @@
 				this.showFavor = false
 				this.TabCur = e.currentTarget.dataset.id;
 				this.label = parseInt(this.TabCur)
+				this.before_id = 0
 				this.scrollLeft = (e.currentTarget.dataset.id - 1) * 100
-				console.log(this.label)
 				this.keyword = ''
 				this.comments = []
 				this.page = 1
@@ -331,30 +327,43 @@
 					url: API_COMMENTS,
 					data: {
 						openid,
-						page: page,
 						size: 20,
 						label: label,
 						keyword,
 						before_id,
 						action: this.showFavor ? 'favtors' : null
 					},
-					success(res) {
+					success: (res) => {
 						if (res.statusCode === 200) {
 							let {
 								meta,
 								list
 							} = res.data
-							that.comments = that.comments.concat(list)
+							if (before_id > 0) {
+								that.comments = that.comments.concat(list)
+							} else {
+								that.comments = list
+							}
+							
 							if (list.length > 0 ) {
 								that.page = page + 1
 							}
 							that.since_id = that.comments[0].id
 							that.before_id = that.comments.slice(-1)[0].id
-							that.isLoading = false
+						} else {
+							uni.showToast({
+								title: '没有了',
+								icon: 'none',
+								duration: 1000
+							});
 						}
-						console.log(that)
+						console.log(that.before_id)
+						that.isLoading = false
 						uni.hideLoading();
 						uni.stopPullDownRefresh()
+					},
+					fail: (fail) => {
+						console.log(fail)
 					}
 				})
 			},
@@ -398,10 +407,14 @@
 			onPullDownRefresh() {
 				console.log('下拉刷新', this.page);
 				this.page = 1
+				this.before_id = 0
 				uni.removeStorage({
-					key: 'comments'
+					key: 'comments',
+					success: () => {
+						this.comments = []
+						this.getComments()
+					}
 				})
-				this.getComments()
 			},
 			onReachBottom(e) {
 				console.log('触底加载更多', this.page)
