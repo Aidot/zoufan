@@ -53,7 +53,7 @@
 						</view>
 					</view>
 				</view>
-				<view class="cu-capsule padding-lr radius margin-top-sm">
+				<view v-if="c.label" class="cu-capsule padding-lr radius margin-top-sm">
 					<text class="cu-tag sm" :class="c.label | labelBgcolor">{{c.label}}</text>
 					<text class="cu-tag sm bg-gray">{{c.label_score | formatScore}}</text>
 				</view>
@@ -106,13 +106,16 @@
 	import moment from 'moment'
 	import 'moment/locale/zh-cn'
 	import Note from './note.vue'
+	import VConsole from 'vconsole'
+	const vConsole = new VConsole()
+	
+	import request from "@/common/pocky-request/index.js"
+	const instance = new request()
+	
 	const labels = ['最新', '陪伴', '认知', '安慰', '鼓励']
-
-
+	
 	export default {
 		components: {
-			// uniRefresh,
-			// uniLoadMore,
 			Note,
 		},
 		data() {
@@ -148,7 +151,6 @@
 		onLoad() {
 			this.getStorageComments()
 			this.getAuth()
-			
 		},
 		onPageScroll(e) {
 			this.scrollTop = e.scrollTop;
@@ -159,7 +161,6 @@
 			uni.getStorage({
 				key:"newsTop",
 				success:(res)=> {
-					console.log(res.data);
 					var timer = setTimeout(()=>{
 						uni.pageScrollTo({
 						    scrollTop: res.data,
@@ -244,7 +245,8 @@
 			},
 			navFavor() {
 				this.showFavor = !this.showFavor
-				this.page = 0
+				this.before_id = 0
+				this.page = 1
 				this.comments = []
 				this.getComments()
 			},
@@ -296,13 +298,19 @@
 
 			},
 			getAuth() {
-				uni.request({
-					url: API_AUTH,
-					success(res) {
-						this.openid = res.data.openid
-						this.mid = res.data.mid
-						this.fan = res.data.fan
-					}
+				// /app/index.php?i=3&c=entry&do=auth&action=getinfo&m=crm_weibo
+				let that = this
+				instance.request({
+					data: {
+						do: 'auth',
+						action: 'getinfo'
+					},
+					method: 'post',
+				}).then(res => {
+					that.openid = res.data.openid
+					that.mid = res.data.mid
+					that.fan = res.data.fan
+					console.log('[Auth]', 'openid', that.openid)
 				})
 			},
 			getComments() {
@@ -330,6 +338,7 @@
 						size: 20,
 						label: label,
 						keyword,
+						page,
 						before_id,
 						action: this.showFavor ? 'favtors' : null
 					},
@@ -383,18 +392,19 @@
 			addFavor(id, i) {
 				if (!this.openid) return
 				let isFavor = this.comments[i].favor
+				let {openid, mid} = this
 				let that = this
+				console.log('[Favor]', isFavor, openid)
 				uni.request({
 					method: 'POST',
 					url: API_FAVOR,
 					data: {
-						openid: this.openid,
-						mid: this.mid,
+						openid,
+						mid,
 						comment_id: id,
 						action: isFavor ? 'cancel' : 'add'
 					},
 					success(res) {
-						console.log(res)
 						uni.showToast({
 							title: res.data.message,
 							icon: 'none',
@@ -405,7 +415,7 @@
 				})
 			},
 			onPullDownRefresh() {
-				console.log('下拉刷新', this.page);
+				console.log('下拉刷新');
 				this.page = 1
 				this.before_id = 0
 				uni.removeStorage({
@@ -417,7 +427,7 @@
 				})
 			},
 			onReachBottom(e) {
-				console.log('触底加载更多', this.page)
+				console.log('触底加载更多', this.page, this.before_id)
 				uni.removeStorage({
 					key: 'comments'
 				})

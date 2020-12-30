@@ -60,6 +60,7 @@
         "router" : {
             "mode" : "history",
             "base" : "./"
-        }
+        },
+        "template" : "index.html"
     }
 }
