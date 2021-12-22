@@ -9,7 +9,7 @@
 					:adjust-position="false" 
 					type="text"
 					v-model="keyword"
-					placeholder="关键词"
+					placeholder="搜索超话"
 					confirm-type="search"></input>
 			</view>
 			<view class="action margin-left">
@@ -21,7 +21,7 @@
 		<!-- <text class="cuIcon-title text-orange"></text> -->
 		<scroll-view scroll-x scroll-with-animatio class="bg-white nav" :scroll-left="scrollLeft">
 			<view class="flex text-center">
-				<view class="cu-item flex-sub" :class="index==0?'text-red cur':''" v-for="(item, index) in menus" :key="index"
+				<view class="cu-item flex-sub" :class="index==1?'text-red cur':''" v-for="(item, index) in menus" :key="index"
 				 @tap="tabSelect" :data-id="index">
 					{{item}}
 				</view>
@@ -44,56 +44,31 @@
 							</view>
 						</view>
 						<view>
-							<view class="flex p-xs text-center" @click="sendWxMsg('group', c)">
+							<view class="flex p-xs text-center" @click="sendWxMsg('sos', c)">
 								<view class="padding-sm text-xl">
-									<text class="cuIcon-wefill text-green" title="扩散"></text>
-									<view class="text-xs text-gray">扩散</view>
+									<text class="cuIcon-noticefill text-red" title="告警"></text>
+									<view class="text-xs text-gray">告警</view>
 								</view>
 							</view>
 						</view>
 					</view>
 				</view>
-				<view v-if="c.label" class="cu-capsule padding-lr radius margin-top-sm">
-					<text class="cu-tag sm" :class="c.label | labelBgcolor">{{c.label}}</text>
-					<text class="cu-tag sm bg-gray">{{c.label_score | formatScore}}</text>
-				</view>
-				<view class="text-content margin-top-sm">
+	
+				<view class="text-content-box margin-top-sm padding-bottom-xl">
 					<text selectable="true">{{c.text}}</text>
 				</view>
-				<view v-if="c.comments && c.comments.length > 1" class="padding-lr radius">
-					<view v-for="(cc, i) in c.comments" :key="i" class="margin-top-sm">
-						<view v-if="cc.id != c.id">
-							<view class="text-grey text-xs margin-bottom-xs">
-								<text class="cuIcon-time"></text> {{cc.created_at | formateDateTime}}
-							</view>
-							<view class="text-gray">{{cc.text}} </view>
-						</view>
-					</view>
-				</view>
+				
 				<view class="text-grey text-sm flex justify-center margin-bottom-sm">
-					<!-- <text class="cuIcon-appreciate margin-lr-xs"></text> -->
-					<view class="padding-sm" @click="visitWeibo(c.user.id, c.id)">
-						<text class="cuIcon-weibo margin-right-xs"></text>
-						<text>主页</text>
-					</view>
-					<view class="padding-sm" @click="getHistories(c.user.name)">
-						<text class="cuIcon-text margin-right-xs"></text>
-						<text>记录</text>
-					</view>
-					<view class="padding-sm" @click="addFavor(c.id, i)">
-						<text class="cuIcon-attentionfavor margin-right-xs" :class="c.favor ? 'text-red': ''"></text>
-						<text>收藏</text>
-					</view>
-					<view class="padding-sm" @click="addNote(c.id)">
-						<text class="cuIcon-remind margin-lr-xs"></text>
-						<text>提醒</text>
-					</view>
-					<view @click="sendWxMsg('sos', c)" class="padding-sm">
-						<text class="cuIcon-noticefill text-red"></text>
-						<text>告警</text>
-					</view>
+						<view class="padding-sm" @click="visitWeibo(c.user.id, c.id)">
+							<text class="cuIcon-weibo margin-right-xs"></text>
+							<text>主页</text>
+						</view>
+						<view class="padding-sm" @click="getHistories(c.user.name)">
+							<text class="cuIcon-text margin-right-xs"></text>
+							<text>记录</text>
+						</view>
 				</view>
-				<Note v-if="note.id === c.id" :note="note" @hideNote="hideNote" />
+				
 			</view>
 		</view>
 		<uni-load-more :contentText="loadmoreText"></uni-load-more>
@@ -103,26 +78,23 @@
 <script>
 	import {
 		API_COMMENTS,
+		API_TOPICS,
 		API_AUTH,
 		API_FAVOR,
 		API_WX_MSG
-	} from '../../common/api.js'
+	} from '../common/api.js'
 	import moment from 'moment'
 	import 'moment/locale/zh-cn'
-	import Note from './note.vue'
 	import VConsole from 'vconsole'
 	const vConsole = new VConsole()
 	
 	import request from "@/common/pocky-request/index.js"
 	const instance = new request()
-	
 	const menus = ['评论区', '超话']
-	
-	const labels = ['最新', '陪伴', '认知', '安慰', '鼓励']
+	const labels = ['评论区', '超话']
 	
 	export default {
 		components: {
-			Note,
 		},
 		data() {
 			return {
@@ -191,10 +163,10 @@
 			labelBgcolor(label) {
 				let output = 'bg-red'
 				switch (label) {
-					case '认知':
+					case '评论区':
 						output = 'bg-blue'
 						break
-					case '安慰':
+					case '超话':
 						output = 'bg-yellow'
 						break
 					case '鼓励':
@@ -213,7 +185,7 @@
 					key: 'comments',
 					success: (res) => {
 						that.comments = res.data
-						that.before_id = that.comments.slice(-1)[0].id
+						that.before_id = that.comments.slice(-1)[0].mid
 					},
 					fail: () => {
 						that.getComments()
@@ -260,6 +232,7 @@
 			searchBlur() {
 				this.before_id = 0
 				this.getComments()
+				uni.navigateTo({ url: '?keyword='+this.keyword});
 			},
 			getHistories(keyword) {
 				this.before_id = 0
@@ -272,7 +245,8 @@
 				let params = {
 					action,
 					id: c.id,
-					openid: this.openid
+					openid: this.openid,
+					type: 'topic'
 				}
 				uni.showModal({
 				    title: '提醒',
@@ -304,6 +278,9 @@
 				this.keyword = ''
 				this.comments = []
 				this.page = 1
+				// if (this.TabCur < 5) {
+				// 	this.getComments()
+				// }
 				let to = this.TabCur == 0 ? '/pages/index/index' : '/pages/topics'
 				uni.navigateTo({
 					url: to
@@ -344,7 +321,7 @@
 				
 				that.isLoading = true
 				uni.request({
-					url: API_COMMENTS,
+					url: API_TOPICS,
 					data: {
 						openid,
 						size: 20,
@@ -369,8 +346,8 @@
 							if (list.length > 0 ) {
 								that.page = page + 1
 							}
-							that.since_id = that.comments[0].mid
-							that.before_id = that.comments.slice(-1)[0].mid
+							that.since_id = list[0].mid
+							that.before_id = list.slice(-1)[0].mid
 						} else {
 							uni.showToast({
 								title: '没有了',
@@ -452,6 +429,11 @@
 <style>
 	.uni-page-wrapper {
 		height: auto!important;
+	}
+	.text-content-box {
+		padding: 0 15px 0;
+		font-size: 15px;
+		margin-bottom: 10px;
 	}
 	.page {
 		height: 100Vh;

@@ -55,7 +55,7 @@
         }
     },
     "h5" : {
-        "title" : "走饭树洞",
+        "title" : "微博树洞",
         "domain" : "",
         "router" : {
             "mode" : "history",

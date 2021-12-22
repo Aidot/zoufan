@@ -1,0 +1,17 @@
+{
+  "name": "client",
+  "version": "1.0.1",
+  "description": "微博树洞",
+  "main": "main.js",
+  "dependencies": {
+    "moment": "^2.29.1",
+    "prettier": "^2.5.1",
+    "vconsole": "^3.10.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "rendao",
+  "license": "ISC"
+}

@@ -6,6 +6,12 @@
 			"style": {}
 		},
 		{
+			"path": "pages/topics",
+			"style": {
+				"navigationBarTitleText": "超话"
+			}
+		},
+		{
 			"path": "pages/report/index",
 			"style": {}
 		},
@@ -113,7 +119,7 @@
 			"allowsBounceVertical": "NO"
 		},
 		"navigationBarBackgroundColor": "#0081ff",
-		"navigationBarTitleText": "走饭树洞",
+		"navigationBarTitleText": "微博树洞",
 		"navigationStyle": "custom",
 		"navigationBarTextStyle": "white",
 		"enablePullDownRefresh": true 
