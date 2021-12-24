@@ -46,7 +46,7 @@
 						<view>
 							<view class="flex p-xs text-center" @click="sendWxMsg('sos', c)">
 								<view class="padding-sm text-xl">
-									<text class="cuIcon-noticefill text-red" title="告警"></text>
+									<text class="cuIcon-notice text-red" title="告警"></text>
 									<view class="text-xs text-gray">告警</view>
 								</view>
 							</view>
@@ -66,6 +66,10 @@
 						<view class="padding-sm" @click="getHistories(c.user.name)">
 							<text class="cuIcon-text margin-right-xs"></text>
 							<text>记录</text>
+						</view>
+						<view class="padding-sm" @click="visitMblog(c.mid)">
+							<text class="cuIcon-link margin-right-xs"></text>
+							<text>原文</text>
 						</view>
 				</view>
 				
@@ -208,6 +212,23 @@
 					}
 				})
 				window.open('https://m.weibo.cn/u/' + uid)
+			},
+			visitMblog(mid) {
+				uni.setStorage({
+					key: 'comments',
+					data: this.comments,
+				})
+				uni.setStorage({
+					key: "newsTop",
+					data: this.scrollTop,
+					success() {
+						console.log('成功了')
+					},
+						fail() {
+						console.log('缓存失败了')
+					}
+				})
+				window.open('https://m.weibo.cn/detail/' + mid)
 			},
 			chatWeibo(uid) {
 				uni.setStorage({

@@ -213,7 +213,7 @@
 					key: 'comments',
 					success: (res) => {
 						that.comments = res.data
-						that.before_id = that.comments.slice(-1)[0].id
+						that.before_id = that.comments.slice(-1)[0].mid
 					},
 					fail: () => {
 						that.getComments()
@@ -369,8 +369,8 @@
 							if (list.length > 0 ) {
 								that.page = page + 1
 							}
-							that.since_id = that.comments[0].mid
-							that.before_id = that.comments.slice(-1)[0].mid
+							that.since_id = list[0].mid
+							that.before_id = list.slice(-1)[0].mid
 						} else {
 							uni.showToast({
 								title: '没有了',
