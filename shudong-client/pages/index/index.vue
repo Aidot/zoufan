@@ -44,10 +44,10 @@
 							</view>
 						</view>
 						<view>
-							<view class="flex p-xs text-center" @click="sendWxMsg('group', c)">
+							<view class="flex p-xs text-center" @click="sendWxMsg('sos', c)">
 								<view class="padding-sm text-xl">
-									<text class="cuIcon-wefill text-green" title="扩散"></text>
-									<view class="text-xs text-gray">扩散</view>
+									<text class="cuIcon-notice text-red" title="告警"></text>
+									<view class="text-xs text-gray">告警</view>
 								</view>
 							</view>
 						</view>
@@ -91,10 +91,10 @@
 						<text class="cuIcon-remind margin-lr-xs"></text>
 						<text>提醒</text>
 					</view> -->
-					<view @click="sendWxMsg('sos', c)" class="padding-sm">
+	<!-- 				<view @click="sendWxMsg('sos', c)" class="padding-sm">
 						<text class="cuIcon-noticefill text-red"></text>
 						<text>告警</text>
-					</view>
+					</view> -->
 				</view>
 				<Note v-if="note.id === c.id" :note="note" @hideNote="hideNote" />
 			</view>
@@ -294,9 +294,20 @@
 					id: c.id,
 					openid: this.openid
 				}
+				let created_at = moment(c.created_at).format('YYYY-MM-DD HH:mm:ss');
+				let link = `https://m.weibo.cn/u/${c.user.id}`;
+				let msg = `🔔\n${c.user.name}说：\n--- ---\n${c.text}\n--- ---\n${created_at}\n${link}`;
+				//复制文本
+				uni.setClipboardData({
+					data: msg,
+					showToast: false,
+					success: function () {
+						console.log('复制成功');
+					}
+				});
 				uni.showModal({
 				    title: '提醒',
-				    content: '点击确定，消息将转发到'+groupname+'群。',
+				    content: '求助信息已复制。\n点击确定，将转发到'+groupname+'群。',
 				    success: function (res) {
 				        if (res.confirm) {
 				           uni.request({
@@ -310,7 +321,7 @@
 				           			duration: 2000
 				           		});
 				           	}
-				           }) 
+				           });
 				        }
 				    }
 				});

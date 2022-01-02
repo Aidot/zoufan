@@ -1,5 +1,7 @@
 /weibo
 /wxbot
-/Client/unpackage
-/Client/node_modules
+/shudong-client/unpackage
+/shudong-client/node_modules
+/shudong-client/static/config.js
 /_contributor
+shudong-client/static/config.js

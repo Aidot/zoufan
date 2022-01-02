@@ -269,9 +269,20 @@
 					openid: this.openid,
 					type: 'topic'
 				}
+				let created_at = moment(c.created_at).format('YYYY-MM-DD HH:mm:ss');
+				let link = `https://m.weibo.cn/u/${c.user.id}`;
+				let msg = `🔔\n${c.user.name}说：\n--- ---\n${c.text}\n--- ---\n${created_at}\n${link}`;
+				//复制文本
+				uni.setClipboardData({
+					data: msg,
+					showToast: true,
+					success: function () {
+						console.log('复制成功');
+					}
+				});
 				uni.showModal({
 				    title: '提醒',
-				    content: '点击确定，消息将转发到'+groupname+'群。',
+				    content: '求助信息已复制。\n点击确定，将转发到'+groupname+'群。',
 				    success: function (res) {
 				        if (res.confirm) {
 				           uni.request({
