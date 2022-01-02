@@ -298,11 +298,16 @@
 				let link = `https://m.weibo.cn/u/${c.user.id}`;
 				let msg = `🔔\n${c.user.name}说：\n--- ---\n${c.text}\n--- ---\n${created_at}\n${link}`;
 				//复制文本
+				let top = this.scrollTop;
 				uni.setClipboardData({
 					data: msg,
 					showToast: false,
 					success: function () {
-						console.log('复制成功');
+						uni.pageScrollTo({
+						    scrollTop: top,
+						    duration: 0
+						});
+						console.log('复制成功', top, this.scrollTop);
 					}
 				});
 				uni.showModal({
